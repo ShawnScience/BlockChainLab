@@ -1,5 +1,6 @@
 import hashlib 
 import datetime
+from pymerkle import verify_inclusion, InmemoryTree as MerkleTree
 
 # OK, so I will build a simple blockchain and use it in a hypotehtical voting system
 class Block:
@@ -93,10 +94,30 @@ if __name__ == "__main__":
     # print("Is the blockchain valid?", blockchain.chain_valid())
     # Print the blockchain
     # blockchain.print_chain()
-    # Try to tamper with the blockchain
-    blockchain.chain[1].data = "Luke votes for Vader"
-    blockchain.chain[1].hash = blockchain.chain[1].calculate_hash()
+    # Try to tamper with the blockchain ************
+    #blockchain.chain[1].data = "Luke votes for Vader"
+    #blockchain.chain[1].hash = blockchain.chain[1].calculate_hash()
     # Check if the chain is valid after tampering
-    print("Is the blockchain valid after tampering?", blockchain.chain_valid())
+    #print("Is the blockchain valid after tampering?", blockchain.chain_valid())
     # Print the blockchain after tampering
-    blockchain.print_chain()
+    #blockchain.print_chain()
+    # Add blocks to merkle tree ***************
+    merkle_tree = MerkleTree(hash_type='sha3_256')
+    # We can use this index to verify one of the leaves on the tree later. 
+    # This is the index of the last block added to the tree.
+    index = 0
+    for block in blockchain.chain:
+        index = merkle_tree.append_entry(block.hash.encode())
+    # Print the merkle tree
+    root = merkle_tree.get_state()
+    print("Merkle Root:", root)
+    print("Merkle Tree:")
+    print(merkle_tree)
+    proof = merkle_tree.prove_inclusion(index, merkle_tree.get_size())
+    leaf = merkle_tree.get_leaf(index)
+    try:
+        verify_inclusion(leaf, root, proof)
+        print("Proof is valid!")
+    except VerificationError:
+        print("Proof is INVALID!")
+        
